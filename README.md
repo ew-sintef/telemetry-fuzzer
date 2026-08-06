@@ -14,9 +14,9 @@ The goal is to provide a repeatable, low-overhead test setup for protocol fuzzin
 
 
 
-In this README file, all example code assumes that the target device has the IP address 192.168.1.1. Replace this value if your target system has a different IP address.
+In this README file, all example code assumes that the target device has the IP address 192.168.1.1, and that the target services use standard default ports. Replace IP and/or port values as necessary to match your test setup.
 
-This repository has been developed as part of the TELEMETRY project, a Horizon Europe project funded by the European Union (grant agreement ID 101119747.
+This repository has been developed as part of the TELEMETRY project, a Horizon Europe project funded by the European Union (grant agreement ID 101119747).
 
 ---
 
@@ -244,7 +244,7 @@ Another way to check the progress and status of the fuzzing session is to use th
 docker logs --tail <number_of_lines> fuzz-http-<timestamp>
 ```
 
-This dumps raw output from the container and may show more data than what is practical. To filter out e.g. the lines which say "Case XX of YY overall." to see the progress of the fuzzing, the command can be piped to grep:
+This dumps raw output from the container and may show more data than what is practical. To show only the lines which say e.g. "Case XX of YY overall" (to see the progress of the fuzzing), the output can be filtered with grep:
 
 ```bash
 docker logs --tail 200 fuzz-http-<timestamp> | grep overall
@@ -268,7 +268,7 @@ Stop monitors (OpenWrt):
 
 ---
 
-## Step 4 - Collect OpenWrt Logs
+## Step 4 — Collect OpenWrt Logs
 
 From Ubuntu:
 
@@ -320,11 +320,16 @@ Contains:
 
 ## OpenWrt Logs
 
+On target device:
 ```text
 /tmp/fuzz/logs/
 ```
+On Ubuntu fuzzer (if the log collection script has been used):
+```text
+out/openwrt/session_label_name/
+```
 
-Contains:
+Target monitoring output contains:
 
 - watchdog logs
 - process monitor logs
@@ -363,7 +368,7 @@ ssh-keygen -t ed25519
 ssh-copy-id root@192.168.1.1
 ```
 
-After this, `deploy_openwrt.sh` will run without manual password entry.
+After this, the ssh and scp commands in the deploy and collect scripts will run without manual password entry.
 
 ---
 
@@ -445,5 +450,7 @@ Watch watchdog log:
 ```
 
 ---
+
+
 
 
