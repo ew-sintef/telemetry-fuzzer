@@ -1,32 +1,120 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
-# Usage:
-#   ./openwrt/collect_logs_openwrt.sh [user@host] [label]
-#
-# Examples:
-#   ./openwrt/collect_logs_openwrt.sh root@192.168.1.1 http_test01
-#   ./openwrt/collect_logs_openwrt.sh root@192.168.1.1
-
 HOST="${1:-root@192.168.1.1}"
-LABEL="${2:-openwrt_$(date +%Y%m%d-%H%M%S)}"
 
-# repo root = parent of openwrt/
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-DEST="$REPO_ROOT/out/openwrt/$LABEL"
-mkdir -p "$DEST"
+echo
+echo "Collect OpenWrt logs"
+echo "===================="
+echo
 
-echo "[*] Collecting OpenWrt artifacts from $HOST"
-echo "[*] Destination: $DEST"
+mapfile -t sessions < <(
+    find "$REPO_ROOT/out" \
+        -mindepth 2 \
+        -maxdepth 2 \
+        -type d \
+        -printf '%T@ %p\n' |
+    sort -rn |
+    cut -d' ' -f2-
+)
 
-# Logs are the main value
-scp -r "$HOST:/tmp/fuzz/logs" "$DEST/" 2>/dev/null || echo "[!] No /tmp/fuzz/logs found or copy failed"
+if [[ ${#sessions[@]} -eq 0 ]]; then
+    echo "No fuzzing sessions found."
+    exit 1
+fi
 
-# Optional dirs
-#scp -r "$HOST:/tmp/fuzz/cores" "$DEST/" 2>/dev/null || true
-#scp -r "$HOST:/tmp/fuzz/pcaps" "$DEST/" 2>/dev/null || true
+echo "Recent fuzzing sessions:"
+echo
 
-echo "[*] Done. Collected:"
-find "$DEST" -maxdepth 2 -type f | sed "s|^|  |"
+for i in "${!sessions[@]}"
+do
+    printf "%2d) %s\n" \
+        "$((i + 1))" \
+        "${sessions[$i]}"
+done
+
+echo
+
+read -rp "Select session number: " choice
+
+if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+    echo "Invalid selection."
+    exit 1
+fi
+
+if (( choice < 1 || choice > ${#sessions[@]} )); then
+    echo "Invalid selection."
+    exit 1
+fi
+
+SESSION_DIR="${sessions[$((choice - 1))]}"
+
+TARGET_LOG_DIR="$SESSION_DIR/target_logs"
+
+mkdir -p "$TARGET_LOG_DIR"
+
+echo
+echo "Selected session:"
+echo "  $SESSION_DIR"
+echo
+
+echo "Collecting logs from $HOST ..."
+echo
+
+scp -r \
+    "$HOST:/tmp/fuzz/logs/" \
+    "$TARGET_LOG_DIR/" \
+    2>/dev/null || \
+    echo "[!] No /tmp/fuzz/logs directory found"
+
+echo
+
+echo "Collected files:"
+find "$TARGET_LOG_DIR" -type f || true
+
+echo
+echo "Regenerating summary..."
+echo
+
+python3 -B \
+    "$REPO_ROOT/fuzzing_scripts/analysis/generate_summary.py" \
+    --session "$SESSION_DIR"
+
+echo
+echo "Summary regenerated."
+echo
+
+if [[ -f "$SESSION_DIR/summary.txt" ]]; then
+
+    echo "============================================"
+    echo "SUMMARY"
+    echo "============================================"
+    echo
+
+    cat "$SESSION_DIR/summary.txt"
+
+elif [[ -f "$SESSION_DIR/summary.md" ]]; then
+
+    echo "============================================"
+    echo "SUMMARY"
+    echo "============================================"
+    echo
+
+    cat "$SESSION_DIR/summary.md"
+
+fi
+
+echo
+echo "Session directory:"
+echo "  $SESSION_DIR"
+
+echo
+echo "Summary files:"
+echo "  $SESSION_DIR/summary.txt"
+echo "  $SESSION_DIR/summary.md"
+echo "  $SESSION_DIR/summary.json"
+echo

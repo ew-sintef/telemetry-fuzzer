@@ -6,6 +6,7 @@ import datetime
 import sys
 import subprocess
 import signal
+import json
 
 # ---------------------------------------------------------------------------
 # Environment / configuration
@@ -340,8 +341,16 @@ def main():
     try:
         session.connect(s_get("Request"))
         session.fuzz(max_depth=1)
+
     except KeyboardInterrupt:
         print("Ctrl+C pressed, stopping fuzzing.")
+
+    except EOFError:
+        print("EOF received, stopping fuzzing.")
+
+    except Exception as e:
+        print(f"Unexpected exception: {e}")
+
     finally:
         if tcpdump_process is not None:
             try:
