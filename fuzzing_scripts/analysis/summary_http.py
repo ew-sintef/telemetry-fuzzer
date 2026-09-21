@@ -59,26 +59,26 @@ def summarize(session_dir):
 
     findings.append(
         "HTTP response distribution:\n"
-        f"  - 2xx = {groups['2xx']}\n"
-        f"  - 3xx = {groups['3xx']}\n"
-        f"  - 4xx = {groups['4xx']}\n"
-        f"  - 5xx = {groups['5xx']}"
+        f"   - 2xx = {groups['2xx']}\n"
+        f"   - 3xx = {groups['3xx']}\n"
+        f"   - 4xx = {groups['4xx']}\n"
+        f"   - 5xx = {groups['5xx']}"
     )
 
     if groups["5xx"]:
 
         findings.append(
-            f"Server-side error responses detected "
-            f"({groups['5xx']} 5xx responses)"
+            f"Server-side error responses detected - "
+            f"{groups['5xx']} 5xx responses"
         )
 
         score += 30
 
-    elif groups["4xx"]:
+    if groups["4xx"]:
 
         findings.append(
-            f"Client error responses detected (expected when fuzzing malformed requests)"
-            f"({groups['4xx']} 4xx responses)"
+            f"Client error responses detected (expected for malformed requests) - "
+            f"{groups['4xx']} 4xx responses"
         )
 
         score += 0

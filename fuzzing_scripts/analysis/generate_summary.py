@@ -136,6 +136,7 @@ def main():
         "w"
     ) as f:
 
+        f.write("=======================\n")
         f.write("FUZZING SESSION SUMMARY\n")
         f.write("=======================\n\n")
 
